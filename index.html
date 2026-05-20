@@ -1,13 +1,532 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>My AI game</title>
+<title>Shooter Reaction Time Game</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  #gameContainer {
+    position: relative;
+    width: 90vw;
+    height: 90vh;
+    max-width: 1200px;
+    max-height: 800px;
+    background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+    border: 3px solid #00d4ff;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+    overflow: hidden;
+    perspective: 1000px;
+  }
+
+  #startScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    text-align: center;
+    color: #00d4ff;
+  }
+
+  #startScreen h1 {
+    font-size: 3em;
+    margin-bottom: 20px;
+    text-shadow: 0 0 10px #00d4ff;
+  }
+
+  #startScreen p {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+    color: #fff;
+  }
+
+  #startButton {
+    padding: 15px 40px;
+    font-size: 1.3em;
+    background: linear-gradient(135deg, #00d4ff, #0099cc);
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .leaderboard-section {
+    background: rgba(0, 212, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border: 2px solid #00d4ff;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .leaderboard-section h3 {
+    color: #00d4ff;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+  }
+
+  .leaderboard-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+    color: #fff;
+    font-size: 1.1em;
+  }
+
+  .leaderboard-entry:last-child {
+    border-bottom: none;
+  }
+
+  .leaderboard-rank {
+    color: #00d4ff;
+    font-weight: bold;
+    min-width: 40px;
+  }
+
+  .leaderboard-name {
+    flex: 1;
+    margin: 0 20px;
+  }
+
+  .leaderboard-score {
+    color: #00ff00;
+    font-weight: bold;
+  }
+
+  #nameInput {
+    padding: 12px 20px;
+    font-size: 1.1em;
+    background: rgba(0, 212, 255, 0.1);
+    color: #00d4ff;
+    border: 2px solid #00d4ff;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+    min-width: 250px;
+  }
+
+  #nameInput::placeholder {
+    color: rgba(0, 212, 255, 0.6);
+  }
+
+  #nameInput:focus {
+    outline: none;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+    background: rgba(0, 212, 255, 0.2);
+  }
+
+  #stats {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #00d4ff;
+    padding: 15px 25px;
+    border-radius: 5px;
+    font-size: 1.1em;
+    z-index: 10;
+    border: 2px solid #00d4ff;
+  }
+
+  .stat-item {
+    margin: 5px 0;
+  }
+
+  #target {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle at 30% 30%, #ff0055, #cc0044);
+    border: 3px solid #ff0055;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    box-shadow: 0 0 20px rgba(255, 0, 85, 0.8);
+    transition: transform 0.1s;
+    user-select: none;
+  }
+
+  #target::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: #ffff00;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  #target:hover {
+    transform: scale(1.15);
+  }
+
+  #target.hit {
+    animation: hit 0.3s ease-out;
+  }
+
+  @keyframes hit {
+    0% {
+      transform: scale(1.2);
+      box-shadow: 0 0 30px rgba(255, 0, 85, 1);
+    }
+    100% {
+      transform: scale(0.5);
+      opacity: 0;
+    }
+  }
+
+  #gameOver {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 101;
+    text-align: center;
+    color: #00d4ff;
+  }
+
+  #gameOver h2 {
+    font-size: 2.5em;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px #00d4ff;
+  }
+
+  .final-stats {
+    background: rgba(0, 212, 255, 0.1);
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    border: 2px solid #00d4ff;
+    font-size: 1.3em;
+  }
+
+  .final-stats div {
+    margin: 10px 0;
+  }
+
+  #restartButton {
+    padding: 15px 40px;
+    font-size: 1.3em;
+    background: linear-gradient(135deg, #00d4ff, #0099cc);
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  #restartButton:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+  }
+
+  .hit-feedback {
+    position: fixed;
+    pointer-events: none;
+    font-weight: bold;
+    color: #00ff00;
+    font-size: 1.5em;
+    text-shadow: 0 0 5px #00ff00;
+  }
+
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-50px);
+    }
+  }
+
+  .bullet {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    background: radial-gradient(circle at 30% 30%, #ffdd00, #ff8800);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 40;
+    box-shadow: 0 0 10px rgba(255, 136, 0, 0.8);
+  }
+
+  @keyframes bulletTravel {
+    0% {
+      opacity: 1;
+      filter: drop-shadow(0 0 8px rgba(255, 136, 0, 1));
+    }
+    100% {
+      opacity: 0;
+      filter: drop-shadow(0 0 2px rgba(255, 136, 0, 0.3));
+    }
+  }
+
+  #crosshair {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 60;
+    display: none;
+  }
+
+  .crosshair-line-h {
+    position: absolute;
+    width: 15px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(0, 255, 100, 0), rgba(0, 255, 100, 0.8), rgba(0, 255, 100, 0));
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+  }
+
+  .crosshair-line-v {
+    position: absolute;
+    width: 2px;
+    height: 15px;
+    background: linear-gradient(180deg, rgba(0, 255, 100, 0), rgba(0, 255, 100, 0.8), rgba(0, 255, 100, 0));
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
+  }
+
+  .crosshair-center {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(0, 255, 100, 0.9);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px rgba(0, 255, 100, 0.6);
+  }
+
+  #gun {
+    position: absolute;
+    width: 280px;
+    height: 200px;
+    pointer-events: none;
+    z-index: 50;
+    display: none;
+    bottom: 20px;
+    right: 20px;
+    transform-style: preserve-3d;
+    transform: rotateX(15deg) rotateZ(5deg);
+  }
+
+  #gunSVG {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.8));
+    transform-style: preserve-3d;
+  }
+</style>
 </head>
 <body>
 
-<h1>AI game goes here</h1>
+<div id="gameContainer">
+  <div id="startScreen">
+    <h1>⚡ SHOOTER ⚡</h1>
+    <p>Test your reaction time! Click the targets as fast as you can.</p>
+    <p>🎯 15 targets | 60 seconds</p>
+    <input type="text" id="nameInput" placeholder="Enter your name..." maxlength="20">
+    <button id="startButton">PLAY</button>
+  </div>
 
+  <div id="stats">
+    <div class="stat-item">🎯 Targets: <span id="targetCount">0</span>/15</div>
+    <div class="stat-item">⏱️ Time: <span id="timer">60</span>s</div>
+    <div class="stat-item">📊 Score: <span id="score">0</span></div>
+    <div class="stat-item">⚡ Avg Reaction: <span id="avgReaction">0</span>ms</div>
+  </div>
 
+  <div id="target"></div>
+
+  <div id="gameOver">
+    <h2>GAME OVER!</h2>
+    <div class="final-stats">
+      <div>🎯 Targets Hit: <span id="finalTargets">0</span>/15</div>
+      <div>📊 Total Score: <span id="finalScore">0</span></div>
+      <div>⚡ Average Reaction Time: <span id="finalAvgReaction">0</span>ms</div>
+    </div>
+    <div class="leaderboard-section">
+      <h3>🏆 LEADERBOARD</h3>
+      <div id="leaderboard"></div>
+    </div>
+    <button id="restartButton">PLAY AGAIN</button>
+  </div>
+</div>
+
+<div id="crosshair">
+  <div class="crosshair-line-h"></div>
+  <div class="crosshair-line-v"></div>
+  <div class="crosshair-center"></div>
+</div>
+
+<div id="gun">
+  <svg id="gunSVG" viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="3" dy="3" stdDeviation="3" flood-opacity="0.8" flood-color="#000"/>
+      </filter>
+      <linearGradient id="gunGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#3a3a3a;stop-opacity:1" />
+        <stop offset="30%" style="stop-color:#2a2a2a;stop-opacity:1" />
+        <stop offset="70%" style="stop-color:#1a1a1a;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      </linearGradient>
+      <linearGradient id="metalGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#666;stop-opacity:1" />
+        <stop offset="50%" style="stop-color:#333;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#111;stop-opacity:1" />
+      </linearGradient>
+      <linearGradient id="skinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#e8b896;stop-opacity:1" />
+        <stop offset="30%" style="stop-color:#d4a574;stop-opacity:1" />
+        <stop offset="70%" style="stop-color:#c99066;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#b8805a;stop-opacity:1" />
+      </linearGradient>
+      <radialGradient id="handleGradient" cx="40%" cy="40%">
+        <stop offset="0%" style="stop-color:#f0c090;stop-opacity:1" />
+        <stop offset="50%" style="stop-color:#d4a574;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#a0764a;stop-opacity:1" />
+      </radialGradient>
+    </defs>
+    
+    <!-- Deep shadow for 3D effect -->
+    <ellipse cx="80" cy="165" rx="60" ry="25" fill="#000" opacity="0.3" filter="url(#shadow)"/>
+    
+    <!-- Hand/Grip - 3D with multiple layers -->
+    <g filter="url(#shadow)">
+      <!-- Back of hand -->
+      <ellipse cx="80" cy="152" rx="52" ry="65" fill="#a0764a" opacity="0.6"/>
+      <!-- Main hand -->
+      <ellipse cx="80" cy="150" rx="55" ry="70" fill="url(#handleGradient)" opacity="0.95"/>
+      <!-- Hand details -->
+      <path d="M 35 120 Q 30 165 50 185 Q 80 195 110 180 Q 125 170 130 140 Q 120 130 80 125 Z" fill="url(#skinGradient)" opacity="0.9"/>
+    </g>
+    
+    <!-- Thumb - 3D -->
+    <g filter="url(#shadow)">
+      <ellipse cx="45" cy="132" rx="16" ry="27" fill="#8a5a3a" opacity="0.5" transform="rotate(-30 45 132)"/>
+      <ellipse cx="45" cy="130" rx="15" ry="25" fill="url(#skinGradient)" opacity="0.85" transform="rotate(-30 45 130)"/>
+    </g>
+    
+    <!-- Gun slide/body - main visible part -->
+    <g filter="url(#shadow)">
+      <!-- Back shadow -->
+      <rect x="122" y="82" width="150" height="35" fill="#0a0a0a" rx="4" opacity="0.7"/>
+      <!-- Main slide -->
+      <rect x="120" y="80" width="150" height="35" fill="url(#gunGradient)" rx="4" stroke="#050505" stroke-width="1"/>
+      <!-- Highlight on top -->
+      <rect x="120" y="80" width="150" height="12" fill="#555" rx="4" opacity="0.4"/>
+    </g>
+    
+    <!-- Gun barrel (top) - 3D -->
+    <g filter="url(#shadow)">
+      <!-- Barrel shadow -->
+      <rect x="122" y="72" width="140" height="12" fill="#0a0a0a" rx="2" opacity="0.6"/>
+      <!-- Main barrel -->
+      <rect x="120" y="70" width="140" height="12" fill="url(#metalGradient)" rx="2" stroke="#000" stroke-width="0.5"/>
+      <!-- Barrel highlight -->
+      <rect x="120" y="70" width="140" height="4" fill="#888" rx="2" opacity="0.5"/>
+    </g>
+    
+    <!-- Muzzle with 3D depth -->
+    <g filter="url(#shadow)">
+      <circle cx="260" cy="76" r="9" fill="#0a0a0a" opacity="0.8"/>
+      <circle cx="260" cy="76" r="8" fill="#1a1a1a"/>
+      <circle cx="260" cy="76" r="6" fill="#000"/>
+      <circle cx="260" cy="76" r="4" fill="#333" opacity="0.6"/>
+    </g>
+    
+    <!-- Trigger guard - 3D -->
+    <g filter="url(#shadow)">
+      <path d="M 157 100 L 167 108 L 167 125 L 157 120 Z" fill="#1a1a1a" opacity="0.7"/>
+      <path d="M 155 100 L 165 108 L 165 125 L 155 120 Z" fill="url(#gunGradient)"/>
+    </g>
+    
+    <!-- Trigger - 3D -->
+    <g filter="url(#shadow)">
+      <rect x="162" y="105" width="6" height="12" fill="#1a1a1a" rx="1" opacity="0.7"/>
+      <rect x="160" y="105" width="6" height="12" fill="#333" rx="1" stroke="#111" stroke-width="0.5"/>
+    </g>
+    
+    <!-- Rear sight - 3D -->
+    <g filter="url(#shadow)">
+      <rect x="147" y="60" width="4" height="15" fill="#1a1a1a" opacity="0.6"/>
+      <rect x="145" y="60" width="4" height="15" fill="#222"/>
+      <rect x="143" y="58" width="8" height="3" fill="#333" opacity="0.8"/>
+    </g>
+    
+    <!-- Front sight - 3D -->
+    <g filter="url(#shadow)">
+      <rect x="252" y="62" width="3" height="14" fill="#1a1a1a" opacity="0.6"/>
+      <rect x="250" y="62" width="3" height="14" fill="#222"/>
+      <rect x="248" y="60" width="7" height="3" fill="#333" opacity="0.8"/>
+    </g>
+    
+    <!-- Hammer - 3D -->
+    <g filter="url(#shadow)">
+      <ellipse cx="187" cy="67" rx="13" ry="11" fill="#1a1a1a" opacity="0.7"/>
+      <ellipse cx="185" cy="65" rx="12" ry="10" fill="url(#metalGradient)"/>
+      <ellipse cx="185" cy="63" rx="8" ry="6" fill="#555" opacity="0.5"/>
+    </g>
+    
+    <!-- Slide detail/grip texture lines -->
+    <g opacity="0.6">
+      <line x1="130" y1="85" x2="240" y2="85" stroke="#444" stroke-width="1" opacity="0.4"/>
+      <line x1="130" y1="90" x2="240" y2="90" stroke="#444" stroke-width="1" opacity="0.4"/>
+      <line x1="130" y1="95" x2="240" y2="95" stroke="#444" stroke-width="1" opacity="0.4"/>
+    </g>
+    
+    <!-- Magazine base - 3D -->
+    <g filter="url(#shadow)">
+      <rect x="140" y="115" width="30" height="12" fill="#1a1a1a" rx="2" opacity="0.7"/>
+      <rect x="138" y="113" width="30" height="12" fill="#2a2a2a" rx="2"/>
+      <rect x="138" y="113" width="30" height="3" fill="#555" rx="2" opacity="0.4"/>
+    </g>
+  </svg>
+</div>
 
 <script src="game.js"></script>
 </body>
